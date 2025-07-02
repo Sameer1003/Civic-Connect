@@ -1,6 +1,8 @@
 import express from "express"
 import cookieParser from "cookie-parser"
 
+import authRouter from "./routes/auth.routes.js";
+
 const app = express();
 
 
@@ -11,6 +13,8 @@ app.use(express.urlencoded({extended: true})); // to allow data through url enco
 app.get('/', (req, res)=>{
     res.send("Hello World");
 })
+
+app.use('/api/v1/auth', authRouter);
 
 
 export default app;
