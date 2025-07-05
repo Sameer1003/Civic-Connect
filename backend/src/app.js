@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser"
 
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
+import complaintsRouter from "./routes/complaints.routes.js";
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.get('/', (req, res)=>{
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/user', userRouter);
+app.use('/api/v1/complaints', complaintsRouter);
 
 
 export default app;

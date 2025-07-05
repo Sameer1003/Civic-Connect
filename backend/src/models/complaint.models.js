@@ -8,6 +8,7 @@ const complaintSchema = new mongoose.Schema({
     },
     complaintType: {
         type: String,
+        enum: ["Electricity", "Water", "Garbage", "Road", "Drainage", "Others"],
         required: true
     },
     complaintImage: {
@@ -18,13 +19,29 @@ const complaintSchema = new mongoose.Schema({
         required: true,
         minLength: 50
     },
+    // location: {
+    //     lat: {
+    //         type: Number,
+    //         required: true
+    //     },
+    //     lng: {
+    //         type: Number,
+    //         required: true
+    //     },
+    //     address: {
+    //         type: String,
+    //         required: true
+    //     }
+    // },
+    
     location: {
-        lat: {
-            type: Number,
+        type: {
+            type: String,
+            enum: ['Point'],
             required: true
         },
-        lng: {
-            type: Number,
+        coordinates: {
+            type: [Number], // [longitude, latitude]
             required: true
         },
         address: {
@@ -32,6 +49,7 @@ const complaintSchema = new mongoose.Schema({
             required: true
         }
     },
+
     complaintStatus: {
         type: String,
         enum: ["pending", "in-progress", "resolved"],
@@ -47,5 +65,6 @@ const complaintSchema = new mongoose.Schema({
     }]
 }, {timestamps: true});
 
+complaintSchema.index({ location: '2dsphere' });
 
 export const Complaint = mongoose.model("Complaint", complaintSchema);
