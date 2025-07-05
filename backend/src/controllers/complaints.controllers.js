@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Complaint } from "../models/complaint.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 
@@ -223,7 +224,92 @@ async function getFilteredComplaints(req, res, next){
 }
 
 async function getComplaintById(req, res, next){
-
+    try {
+        /*
+            1. we'll get id from params
+            2. match in Complaint model for that complaint.
+            3. populate user
+            4. find comment and upvote count
+            5. send response
+        */
+    
+        const { complaintId } = req.params;
+    
+        if(!complaintId){
+            return res.status(400).json({
+                success: false,
+                message: "Cannot get Complaint Id from params"
+            });
+        }
+    
+        let pipeline = [];
+    
+        pipeline.push(
+            {
+                $match: { _id: new mongoose.Types.ObjectId(complaintId) }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            {
+                $unwind: "$user"
+            },
+            {
+                $lookup: {
+                    from: "comments",
+                    localField: "_id",
+                    foreignField: "complaint",
+                    as: "comments"
+                }
+            },
+            {
+                $addFields: {
+                    commentCount: {$size: "$comments"},
+                    upvoteCount: {$size: { $ifNull: ["$upvotes", []]}},
+                    user: {
+                        username: "$user.username",
+                        firstName: "$user.firstName",
+                        middleName: "$user.middleName",
+                        lastName: "$user.lastName",
+                    }
+                }
+            },
+            {
+                $project: {
+                    user: 1,
+                    complaintType: 1,
+                    complaintImage: 1,
+                    description: 1,
+                    location: 1,
+                    complaintStatus: 1,
+                    comments: 0,
+                    upvotes: 0,
+                    commentCount: 1,
+                    upvoteCount: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            }
+        );
+    
+        const complaintObject = await Complaint.aggregate(pipeline);
+    
+        return res.status(200).json({
+            success: true,
+            data: complaintObject,
+            message: "Complaint based on Id fetched successfully"
+        });
+    } catch (error) {
+        return res.status(error.code).json({
+            success: false,
+            message: error.message
+        });
+    }
 }
 
 async function updateComplaint(req, res, next){
