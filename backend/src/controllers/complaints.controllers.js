@@ -446,4 +446,130 @@ async function deleteComplaint(req, res, next){
     }
 }
 
-export { postComplaint, getFilteredComplaints, getComplaintById, updateComplaint, deleteComplaint };
+async function postUpvote(req, res, next){
+    try {
+        /*
+            1. coming from auth middleware. get user from there
+            2. get complaint id from params
+            3. add user to the upvotes array (if already not present)
+            4. return response
+        */
+    
+        const user = req.user;
+        const {complaintId} = req.params;
+    
+        if(!complaintId){
+            return res.status(400).json({
+                success: false,
+                message: "Couldn't get complaint id from params"
+            });
+        }
+    
+        const complaint = await Complaint.findById(complaintId);
+    
+        if(!complaint){
+            return res.status(404).json({
+                success: false,
+                message: "Couldn't find complaint with given id"
+            });
+        }
+    
+        //checking if user already did upvote
+        const alreadyUpvoted = complaint.upvotes.find(
+            (id) => {
+                return id.toString() === user._id.toString();
+            }
+        )
+    
+        if(alreadyUpvoted){
+            // code:409 - conflict
+            return res.status(409).json({
+                success: false,
+                message: "Already upvoted"
+            });
+        }
+    
+        complaint.upvotes.push(user._id);
+        await complaint.save();
+    
+        return res.status(200).json({
+            success: true,
+            message: "Upvote added"
+        });
+    } catch (error) {
+        return res.status(error.code || 500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+async function deleteUpvote(req, res, next){
+    try {
+        /*
+            1. coming from auth middleware. get user from there
+            2. get complaint id from params
+            3. remove user to the upvotes array (if already present)
+            4. return response
+        */
+    
+        const user = req.user;
+        const {complaintId} = req.params;
+    
+        if(!complaintId){
+            return res.status(400).json({
+                success: false,
+                message: "Couldn't get complaint id from params"
+            });
+        }
+    
+        const complaint = await Complaint.findById(complaintId);
+    
+        if(!complaint){
+            return res.status(404).json({
+                success: false,
+                message: "Couldn't find complaint with given id"
+            });
+        }
+    
+        //checking if user already did upvote
+        const upvotePresent = complaint.upvotes.find(
+            (id) => {
+                return id.toString() === user._id.toString();
+            }
+        )
+    
+        if(!upvotePresent){
+            return res.status(400).json({
+                success: false,
+                message: "User has'nt upvoted this complaint"
+            });
+        }
+    
+        complaint.upvotes = complaint.upvotes.filter(
+            (id) => { return id.toString() !== user._id.toString()}
+        )
+        
+        await complaint.save();
+    
+        return res.status(200).json({
+            success: true,
+            message: "Upvote deleted successfully"
+        });
+    } catch (error) {
+        return res.status(error.code || 500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
+export { 
+    postComplaint, 
+    getFilteredComplaints,
+    getComplaintById, 
+    updateComplaint, 
+    deleteComplaint, 
+    postUpvote,
+    deleteUpvote
+};
