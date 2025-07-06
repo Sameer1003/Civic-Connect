@@ -11,7 +11,7 @@ complaintsRouter.route('/')
 
 complaintsRouter.route('/:id')
     .get(getComplaintById)
-    .put(authMiddleware, updateComplaint)
+    .patch(authMiddleware, updateComplaint)
     .delete(authMiddleware, deleteComplaint)
 
 export default complaintsRouter;

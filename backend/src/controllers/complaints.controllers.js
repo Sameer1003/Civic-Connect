@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Complaint } from "../models/complaint.models.js";
+import { Comment } from "../models/comment.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 
 async function postComplaint(req, res, next){
@@ -314,10 +315,135 @@ async function getComplaintById(req, res, next){
 
 async function updateComplaint(req, res, next){
 
+    try {
+        /*
+            1. coming from auth middleware
+            2. get complaintId from req.params
+            3. verify that if the user changing the complaint and the user who created complaint is same
+            4. define modifiable fields
+            5. extract data from req.body
+            6. validate with modifiable fields
+            7. change the required fields
+            8. return response
+        */
+    
+        const user = req.user;
+        const {complaintId} = req.params;
+    
+        if(!complaintId){
+            return res.status(400).json({
+                success: false,
+                message: "Cannot get complaint id from params"
+            })
+        }
+    
+        const complaintOwner = await Complaint.findById(complaintId).select("user");
+
+        if(!complaintOwner){
+            return res.status(404).json({
+                success: false,
+                message: "Complaint not found"
+            });
+        }
+    
+        if(complaintOwner.toString() !== user._id.toString()){
+            // code:403 - forbidden
+            return res.status(403).json({
+                success: false,
+                message: "User doesn't have right to modify this complaint."
+            })
+        }
+    
+        const modifiableFields = [ "complaintType", "description", "location" ];
+    
+        const updatedDetails = req.body;
+    
+        const finalDetails = {};
+    
+        for(const field of modifiableFields){
+            if(updatedDetails[field]){
+                finalDetails[field] = updatedDetails[field];
+            }
+        }
+    
+        const updatedComplaint = await Complaint.findByIdAndUpdate(
+            complaintId, 
+            {
+                $set: finalDetails
+            },
+            {
+                new: true,
+                runValidators: true,
+            }
+        );
+    
+        return res.status(200).json({
+            success: true,
+            data: updatedComplaint,
+            message: "Complaint Updated Successfully"
+        });
+    } catch (error) {
+        return res.status(error.code || 500).json({
+            success: false,
+            message: error.message
+        });
+    }
 }
 
 async function deleteComplaint(req, res, next){
-
+    try {
+        /*
+            1. coming from auth middleware
+            2. get complaintId from req.params
+            3. verify that if the user changing the complaint and the user who created complaint is same
+            4. clear image from cloudinary url
+            5. find all comments with this complaintid and delete all those comments
+            6. delete complaint
+        */
+    
+        const user = req.user;
+        const {complaintId} = req.params;
+    
+        if(!complaintId){
+            return res.status(400).json({
+                success: false,
+                message: "Cannot get complaint id from params"
+            })
+        }
+    
+        const complaint = await Complaint.findById(complaintId);
+    
+        if(!complaint){
+            return res.status(404).json({
+                success: false,
+                message: "Complaint not found"
+            });
+        }
+    
+        if(complaint.user.toString() !== user._id.toString()){
+            // code:403 - forbidden
+            return res.status(403).json({
+                success: false,
+                message: "User doesn't have right to delete this complaint."
+            });
+        }
+    
+        // TODO: Delete image from cloudinary
+    
+        await Comment.deleteMany({ complaint: complaintId });
+    
+        await Complaint.findByIdAndDelete(complaintId);
+    
+        return res.status(200).json({
+            success: true,
+            message: "Complaint Deleted Successfully"
+        });
+    } catch (error) {
+        return res.status(error.code || 500).json({
+            success: false,
+            message: error.message
+        });
+    }
 }
 
 export { postComplaint, getFilteredComplaints, getComplaintById, updateComplaint, deleteComplaint };
