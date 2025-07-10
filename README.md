@@ -1,1 +1,0 @@
-This is a Hackthon Project being built by Team - prettylittlebabies (Akshat Rangari, Rajeshwari and Sameer Mehta)
